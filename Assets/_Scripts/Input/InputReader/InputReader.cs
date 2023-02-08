@@ -12,33 +12,41 @@ public class InputReader
     public delegate void MovePerformed(Vector2 movement);
     public event MovePerformed OnMovePerformed;
 
-    public delegate void TouchEvent(InputAction.CallbackContext context);
+    public delegate void TouchEvent(Vector2 position, float time);
     public event TouchEvent OnTouchStarted;
     public event TouchEvent OnTouchFinished;
 
     #endregion
 
-    private PlayerControls _playerControls;
+    private PlayerControls playerControls;
 
-    public Vector2 TouchPosition
+    private Vector2 TouchPosition
     {
-        get { return _playerControls.Game.TouchPosition.ReadValue<Vector2>(); }
+        get
+        {
+            return playerControls.Game.TouchPosition.ReadValue<Vector2>();
+        }
     }
 
     #region Methods
 
     public void Initialize()
     {
-        _playerControls = new PlayerControls();
+        playerControls = new PlayerControls();
 
-        _playerControls.Enable();
+        playerControls.Enable();
 
-        _playerControls.Game.Move.performed += context => PlayerMoved(context);
-
-        _playerControls.Game.TouchContact.started += context => TouchStarted(context);
-        _playerControls.Game.TouchContact.canceled += context => TouchFinished(context);
+        SusbscribeToEvents();
 
         Debug.Log("InputManager Initialized");
+    }
+
+    private void SusbscribeToEvents()
+    {
+        playerControls.Game.Move.started += context => PlayerMoved(context);
+
+        playerControls.Game.TouchPosition.started += context => FingerDown(context);
+        playerControls.Game.TouchPosition.canceled += context => FingerUp(context);
     }
 
     private void PlayerMoved(InputAction.CallbackContext context)
@@ -48,23 +56,29 @@ public class InputReader
         if (OnMovePerformed != null) OnMovePerformed(movement);
     }
 
-    private void TouchStarted(InputAction.CallbackContext context)
+    private void FingerDown(InputAction.CallbackContext context)
     {
-        if (OnTouchStarted != null) OnTouchStarted(context);
+        if (OnTouchStarted != null) OnTouchStarted(TouchPosition, (float) context.startTime);
     }
 
-    private void TouchFinished(InputAction.CallbackContext context)
+    private void FingerUp(InputAction.CallbackContext context)
     {
-        if (OnTouchFinished != null) OnTouchFinished(context);
+        if (OnTouchFinished != null) OnTouchFinished(TouchPosition, (float) context.time);
     }
 
     public void Dispose()
     {
-        _playerControls.Disable();
+        playerControls.Disable();
 
-        _playerControls.Game.Move.performed -= context => PlayerMoved(context);
-        _playerControls.Game.TouchContact.started -= context => TouchStarted(context);
-        _playerControls.Game.TouchContact.canceled -= context => TouchFinished(context);
+        UnsubscribeFromEvents();
+    }
+
+    private void UnsubscribeFromEvents()
+    {
+        playerControls.Game.Move.performed -= context => PlayerMoved(context);
+
+        playerControls.Game.TouchPosition.started -= context => FingerDown(context);
+        playerControls.Game.TouchPosition.canceled -= context => FingerUp(context);
     }
 
     #endregion

@@ -8,7 +8,7 @@ public class SwipeDetection : MonoBehaviour
 {
     [Inject] private InputReader inputReader;
 
-    [Inject] private SwipeSettings _swipeSettings;
+    [Inject] private SwipeSettings swipeSettings;
 
     private Vector2 initialTouchPosition;
     private float initialTouchTime;
@@ -20,23 +20,25 @@ public class SwipeDetection : MonoBehaviour
 
     private void Initialize()
     {
-        inputReader.OnTouchStarted += context => AssignInitialSwipeVariables(context);
-        inputReader.OnTouchFinished += context => DetectSwipe(context);
+        inputReader.OnTouchStarted += (position, time) => AssignInitialSwipeVariables(position, time);
+        inputReader.OnTouchFinished += (position, time) => DetectSwipe(position, time);
     }
 
-    private void AssignInitialSwipeVariables(InputAction.CallbackContext context)
+    private void AssignInitialSwipeVariables(Vector2 position, float time)
     {
-        initialTouchPosition = inputReader.TouchPosition;
-        initialTouchTime = (float)context.startTime;
+        initialTouchPosition = position;
+        initialTouchTime = time;
+
+        Debug.Log($"Swipe Started from: {initialTouchPosition} at: {initialTouchTime} ");
     }
 
-    private void DetectSwipe(InputAction.CallbackContext context)
+    private void DetectSwipe(Vector2 position, float time)
     {
-        Vector2 finalTouchPosition = inputReader.TouchPosition;
-        float swipeSeconds = (float)context.time - initialTouchTime;
+        Vector2 finalTouchPosition = position;
+        float swipeSeconds = time - initialTouchTime;
 
-        bool isSwipeLongEnough = Vector2.Distance(initialTouchPosition, finalTouchPosition) >= _swipeSettings.minimumDistance;
-        bool isSwipeDoneFastEnough = swipeSeconds <= _swipeSettings.maximumTime;
+        bool isSwipeLongEnough = Vector2.Distance(initialTouchPosition, finalTouchPosition) >= swipeSettings.minimumDistance;
+        bool isSwipeDoneFastEnough = swipeSeconds <= swipeSettings.maximumTime;
 
         if (isSwipeLongEnough && isSwipeDoneFastEnough)
         {
@@ -51,8 +53,8 @@ public class SwipeDetection : MonoBehaviour
 
     public void Dispose()
     {
-        inputReader.OnTouchStarted -= context => AssignInitialSwipeVariables(context);
-        inputReader.OnTouchFinished -= context => DetectSwipe(context);
+        inputReader.OnTouchStarted -= (position, time) => AssignInitialSwipeVariables(position, time);
+        inputReader.OnTouchFinished -= (position, time) => DetectSwipe(position, time);
     }
 
 }
